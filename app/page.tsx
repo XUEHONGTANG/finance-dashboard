@@ -15,11 +15,6 @@ export default function DashboardPage() {
           <p className="text-slate-500 text-sm mt-1">US Investment Dashboard · 每 5 分鐘自動更新</p>
         </div>
 
-        {/* Buy/Sell Signals - full width */}
-        <div className="mb-6">
-          <BuySellSignals />
-        </div>
-
         {/* Top row: F&G + Bond + Forex */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
           <FearGreedGauge />
@@ -28,8 +23,13 @@ export default function DashboardPage() {
         </div>
 
         {/* Economic indicators */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-4">
           <EconomicCards />
+        </div>
+
+        {/* Buy/Sell Signals - full width */}
+        <div className="mb-4">
+          <BuySellSignals />
         </div>
 
         {/* Stock watchlist */}

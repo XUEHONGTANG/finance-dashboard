@@ -3,9 +3,10 @@ import { NextResponse } from 'next/server';
 const FRED_KEY = process.env.FRED_API_KEY || 'demo';
 const FMP_KEY = process.env.FMP_API_KEY || 'demo';
 
-async function fetchFred(seriesId: string): Promise<number | null> {
+async function fetchFred(seriesId: string, units?: string): Promise<number | null> {
   try {
-    const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_KEY}&file_type=json&limit=5&sort_order=desc`;
+    const unitsParam = units ? `&units=${units}` : '';
+    const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_KEY}&file_type=json&limit=5&sort_order=desc${unitsParam}`;
     const res = await fetch(url, { next: { revalidate: 3600 } });
     if (!res.ok) return null;
     const data = await res.json();
@@ -16,7 +17,7 @@ async function fetchFred(seriesId: string): Promise<number | null> {
   }
 }
 
-async function fetchIsmPmi(): Promise<number | null> {
+async function fetchFmpCalendar(keyword: string): Promise<number | null> {
   try {
     const today = new Date().toISOString().slice(0, 10);
     const from = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -25,7 +26,7 @@ async function fetchIsmPmi(): Promise<number | null> {
     if (!res.ok) return null;
     const data: { event: string; actual: number | null; country: string; date: string }[] = await res.json();
     const entries = data
-      .filter(x => x.event === 'ISM Manufacturing PMI (Mar)' || x.event.startsWith('ISM Manufacturing PMI') && x.country === 'US' && x.actual != null)
+      .filter(x => x.event.toLowerCase().includes(keyword.toLowerCase()) && x.actual != null)
       .sort((a, b) => b.date.localeCompare(a.date));
     return entries[0]?.actual ?? null;
   } catch {
@@ -33,13 +34,27 @@ async function fetchIsmPmi(): Promise<number | null> {
   }
 }
 
+async function fetchIsmPmi(): Promise<number | null> {
+  return fetchFmpCalendar('ISM Manufacturing PMI');
+}
+
+async function fetchConsumerSentiment(): Promise<number | null> {
+  // FMP 有 "Michigan Consumer Sentiment" 初步值，比 FRED 快一個月
+  const fmp = await fetchFmpCalendar('Michigan Consumer Sentiment');
+  if (fmp != null) return fmp;
+  // 回退至 FRED
+  return fetchFred('UMCSENT');
+}
+
 export async function GET() {
-  const [unemploymentRate, ismManufacturing, consumerConfidence, fedFundsRate] =
+  const [unemploymentRate, ismManufacturing, consumerConfidence, fedFundsRate, cpiYoY, ppiYoY] =
     await Promise.all([
       fetchFred('UNRATE'),
       fetchIsmPmi(),
-      fetchFred('UMCSENT'),
+      fetchConsumerSentiment(),
       fetchFred('FEDFUNDS'),
+      fetchFred('CPIAUCSL', 'pc1'),
+      fetchFred('PPIACO', 'pc1'),
     ]);
 
   return NextResponse.json({
@@ -47,6 +62,8 @@ export async function GET() {
     ismManufacturing,
     consumerConfidence,
     fedFundsRate,
+    cpiYoY,
+    ppiYoY,
     updatedAt: new Date().toISOString(),
   });
 }

@@ -16,6 +16,8 @@ export interface EconomicData {
   ismManufacturing: number | null;
   consumerConfidence: number | null;
   fedFundsRate: number | null;
+  cpiYoY: number | null;
+  ppiYoY: number | null;
   updatedAt: string;
 }
 
