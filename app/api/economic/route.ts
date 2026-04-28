@@ -54,7 +54,7 @@ export async function GET() {
       fetchConsumerSentiment(),
       fetchFred('FEDFUNDS'),
       fetchFred('CPIAUCSL', 'pc1'),
-      fetchFred('PPIACO', 'pc1'),
+      fetchFred('PPIFID', 'pc1'),
     ]);
 
   return NextResponse.json({
