@@ -18,6 +18,8 @@ export interface EconomicData {
   fedFundsRate: number | null;
   cpiYoY: number | null;
   ppiYoY: number | null;
+  nonfarmPayroll: number | null;
+  nonfarmPayrollChange: number | null;
   updatedAt: string;
 }
 

@@ -17,6 +17,22 @@ async function fetchFred(seriesId: string, units?: string): Promise<number | nul
   }
 }
 
+// Returns [latest, previous] valid observations
+async function fetchFredTwo(seriesId: string): Promise<[number | null, number | null]> {
+  try {
+    const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_KEY}&file_type=json&limit=5&sort_order=desc`;
+    const res = await fetch(url, { next: { revalidate: 3600 } });
+    if (!res.ok) return [null, null];
+    const data = await res.json();
+    const valid = (data.observations ?? []).filter((o: { value: string }) => o.value !== '.');
+    const latest = valid[0] ? parseFloat(valid[0].value) : null;
+    const prev   = valid[1] ? parseFloat(valid[1].value) : null;
+    return [latest, prev];
+  } catch {
+    return [null, null];
+  }
+}
+
 async function fetchFmpCalendar(keyword: string): Promise<number | null> {
   try {
     const today = new Date().toISOString().slice(0, 10);
@@ -47,7 +63,7 @@ async function fetchConsumerSentiment(): Promise<number | null> {
 }
 
 export async function GET() {
-  const [unemploymentRate, ismManufacturing, consumerConfidence, fedFundsRate, cpiYoY, ppiYoY] =
+  const [unemploymentRate, ismManufacturing, consumerConfidence, fedFundsRate, cpiYoY, ppiYoY, [nonfarmPayroll, nonfarmPayrollPrev]] =
     await Promise.all([
       fetchFred('UNRATE'),
       fetchIsmPmi(),
@@ -55,7 +71,13 @@ export async function GET() {
       fetchFred('FEDFUNDS'),
       fetchFred('CPIAUCSL', 'pc1'),
       fetchFred('PPIFID', 'pc1'),
+      fetchFredTwo('PAYEMS'),
     ]);
+
+  const nonfarmPayrollChange =
+    nonfarmPayroll != null && nonfarmPayrollPrev != null
+      ? Math.round(nonfarmPayroll - nonfarmPayrollPrev)
+      : null;
 
   return NextResponse.json({
     unemploymentRate,
@@ -64,6 +86,8 @@ export async function GET() {
     fedFundsRate,
     cpiYoY,
     ppiYoY,
+    nonfarmPayroll,
+    nonfarmPayrollChange,
     updatedAt: new Date().toISOString(),
   });
 }

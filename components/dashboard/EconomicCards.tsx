@@ -21,6 +21,7 @@ interface EcoIndicator {
   value: number | null;
   unit: string;
   decimals?: number;
+  showSign?: boolean;
   thresholds?: Threshold[];
 }
 
@@ -37,8 +38,9 @@ function IndicatorCard({ item, isLoading, updatedAt }: {
   isLoading: boolean;
   updatedAt?: string;
 }) {
-  const { value, unit, decimals = 1, thresholds } = item;
+  const { value, unit, decimals = 1, showSign = false, thresholds } = item;
   const level = value != null && thresholds ? getLevel(value, thresholds) : null;
+  const sign = showSign && value != null && value > 0 ? '+' : '';
 
   return (
     <Card>
@@ -48,7 +50,7 @@ function IndicatorCard({ item, isLoading, updatedAt }: {
       ) : (
         <div className="mt-1">
           <span className={`text-2xl sm:text-3xl font-bold tabular-nums ${level?.valueColor ?? 'text-slate-900'}`}>
-            {value != null ? `${formatNumber(value, decimals)}${unit}` : '—'}
+            {value != null ? `${sign}${formatNumber(value, decimals)}${unit}` : '—'}
           </span>
           {level && (
             <div className={`mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${level.badgeColor}`}>
@@ -144,6 +146,21 @@ export function EconomicCards() {
         { atLeast: 3,         valueColor: 'text-lime-600',   badgeColor: 'bg-lime-100 text-lime-800',    label: '🟡 略高於目標' },
         { atLeast: 4,         valueColor: 'text-orange-600', badgeColor: 'bg-orange-100 text-orange-800',label: '🟠 成本壓力過高' },
         { atLeast: 5,         valueColor: 'text-red-600',    badgeColor: 'bg-red-100 text-red-800',      label: '🔴 成本嚴重攀升' },
+      ],
+    },
+    {
+      label: '非農就業變化',
+      subtitle: 'Nonfarm Payrolls MoM (K)',
+      value: data?.nonfarmPayrollChange ?? null,
+      unit: 'K',
+      decimals: 0,
+      showSign: true,
+      thresholds: [
+        { atLeast: -Infinity, valueColor: 'text-red-600',    badgeColor: 'bg-red-100 text-red-800',      label: '↓ 就業下滑' },
+        { atLeast: 0,         valueColor: 'text-orange-600', badgeColor: 'bg-orange-100 text-orange-800',label: '↑ 就業偏弱' },
+        { atLeast: 100,       valueColor: 'text-yellow-600', badgeColor: 'bg-yellow-100 text-yellow-800',label: '↑ 溫和增長' },
+        { atLeast: 200,       valueColor: 'text-lime-600',   badgeColor: 'bg-lime-100 text-lime-800',    label: '↑ 穩健增長' },
+        { atLeast: 300,       valueColor: 'text-green-600',  badgeColor: 'bg-green-100 text-green-800',  label: '↑ 強勁增長' },
       ],
     },
   ];
